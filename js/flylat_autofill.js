@@ -167,8 +167,6 @@
         const fleetData = JSON.parse(localStorage.getItem('fleetData') || '[]');
         if (fleetData.length === 0) {
             console.log("No fleetData in localStorage.");
-            button.style.backgroundColor = '';
-            button.disabled = true;
             return;
         }
 
@@ -206,6 +204,14 @@
     }
 
     getAIFleet();
+
+    if (localStorage.getItem('AIFleet').length === 0) {
+        console.warn("No available parked aircraft in localStorage.");
+        button.style.backgroundColor = '';
+        button.disabled = true;
+        localStorage.removeItem('AIFleet');
+        return;
+    }
 
     window.addEventListener('DOMContentLoaded', init);
 
