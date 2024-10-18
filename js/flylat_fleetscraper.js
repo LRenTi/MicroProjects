@@ -40,7 +40,7 @@
 
     // Button opens a new window on click
     aiButton.onclick = function() {
-        window.location.href = 'https://app.flylat.net/fleet';
+        window.location.href = 'https://app.flylat.net/hire_ai';
     };
 
     buttonarea.appendChild(aiButton);
