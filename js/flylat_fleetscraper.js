@@ -11,9 +11,12 @@
 (function() {
     'use strict';
 
+    if(localStorage.getItem("AIFleet")){
+        localStorage.removeItem("AIFleet");
+    }
+
     fetchAndMergeData();
 
-    // Create the topbar element
     const topbar = document.createElement('div');
     topbar.id = 'customTopbar';
     topbar.classList.add('card');
@@ -24,28 +27,25 @@
     topbar.style.marginBottom = '10px';
     topbar.style.position = 'relative';
     topbar.style.display = 'flex';
-    topbar.style.flexDirection = 'row'; // Stack elements vertically if needed
+    topbar.style.flexDirection = 'row';
 
-    // Create and style the right-aligned "AI" button
     const buttonarea = document.createElement('div');
     buttonarea.style.marginBottom = '10px';
 
     const aiButton = document.createElement('button');
-    aiButton.textContent = 'to AI';
+    aiButton.textContent = 'Hire';
     aiButton.style.backgroundColor = '#fff';
     aiButton.style.color = '#4c8cb5';
     aiButton.style.border = '1px solid #4c8cb5';
     aiButton.style.padding = '5px 10px';
     aiButton.style.borderRadius = '5px';
 
-    // Button opens a new window on click
     aiButton.onclick = function() {
         window.location.href = 'https://app.flylat.net/hire_ai';
     };
 
     buttonarea.appendChild(aiButton);
 
-    // Insert the topbar before the first employee-card
     const firstEmployeeCard = document.querySelector('.employee-card');
     if (firstEmployeeCard) {
         firstEmployeeCard.parentNode.insertBefore(topbar, firstEmployeeCard);
@@ -54,7 +54,6 @@
         console.error('No employee card found to insert the topbar.');
     }
 
-    // Handle file upload
     async function fetchAndMergeData() {
         try {
             // Daten von den zwei APIs abrufen
@@ -92,21 +91,14 @@
                         existingAircraft.departure = newAircraft.Departure || existingAircraft.departure; // Departure hinzufügen oder aktualisieren
                         existingAircraft.destination = newAircraft.Destination || existingAircraft.destination; // Destination hinzufügen oder aktualisieren
                     } else {
-                        // Hinzufügen neuer Flugzeuge
-                        existingData.push({
-                            name: newAircraft.Name,
-                            hub: newAircraft.Hub,
-                            occupied: newAircraft.occupied,
-                            health: 100, // Beispielwert; kannst du anpassen
-                            route: newAircraft.Route || null, // Route hinzufügen
-                            departure: newAircraft.Departure || null, // Departure hinzufügen
-                            destination: newAircraft.Destination || null // Destination hinzufügen
-                        });
+                        console.log("Aircraft not saved!");
                     }
                 });
 
                 // Speichern der aktualisierten Daten im localStorage
                 localStorage.setItem('fleetData', JSON.stringify(existingData));
+
+                updateTopbar();
 
             } else {
                 console.error("Invalid data format: expected arrays from both APIs.");
@@ -116,7 +108,6 @@
         }
     }
 
-    // Format the timestamp as dd-mm-yy hh:mm
     function formatTimestamp() {
         const now = new Date();
         const day = String(now.getDate()).padStart(2, '0');
@@ -127,14 +118,16 @@
         return `${day}.${month}.${year}, ${hours}:${minutes}`;
     }
 
-    // Create and append the timestamp, airplane icon, and colored circles with aircraft counts
     function updateTopbar() {
         const fleetData = localStorage.getItem("fleetData");
+        console.log("Loaded Fleet Data:", fleetData);
         const fleetArray = JSON.parse(fleetData);
         let repair = 0;
         let aiFlight = 0;
         let aiTransfer = 0;
         let aiReady = 0;
+
+        console.log("Fleet:", fleetArray);
 
         if (fleetData) {
             // String zu einem Array parsen
@@ -145,12 +138,13 @@
                 if(aircraft.status === "AI IN FLIGHT"){
                     aiFlight++;
                 }
-                if(aircraft.location !== aircraft.hub && aircraft.route){
+                if(aircraft.status.includes("PARKED") && aircraft.route && ((aircraft.location !== aircraft.departure) || (aircraft.location !== aircraft.hub))){
                     aiTransfer++;
                 }
-                if(aircraft.health < 50 && aircraft.status === "PARKED" && aircraft.location === aircraft.hub){
+                if(aircraft.status.includes("PARKED") && aircraft.health > 50 && aircraft.route && aircraft.departure === aircraft.location){
                     aiReady++;
                 }
+
             });
         }
 
@@ -236,7 +230,7 @@
             aiTransferAircraft.style.gap = '5px';
             aiTransferAircraft.style.marginRight = '10px';
             const aiTransIcon = document.createElement('i');
-            aiTransIcon.classList.add('fas', 'fa-microchip');
+            aiTransIcon.classList.add('fas', 'fa-right-left');
             aiTransIcon.style.fontSize = '20px';
             aiTransIcon.style.color = '#FF5733';
             const aiTransCount = document.createElement('span');
@@ -246,6 +240,8 @@
             aiTransferAircraft.appendChild(aiTransCount);
             topbar.appendChild(aiTransferAircraft);
         }
+
+        console.log("Ready to TakeOFF", aiReady)
 
         if(aiReady >= 1){
             const aiReadyAircraft = document.createElement('div');
@@ -268,7 +264,6 @@
 
     }
 
-    // Scrape fleet data
     function scrapeFleetData() {
         const fleetData = [];
         const aircraftCards = document.querySelectorAll('.employee-card');
@@ -320,6 +315,11 @@
                     status: status,
                     location: location,
                     health: health,
+                    hub: null,
+                    occupied: null,
+                    route: null,
+                    departure: null,
+                    destination: null,
                 });
             }
         });
@@ -328,20 +328,18 @@
             localStorage.setItem('fleetData', JSON.stringify(fleetData));
             localStorage.setItem('timeStamp', new Date().toISOString());
             console.log("Fleet data saved successfully!", fleetData);
-            updateTopbar();
         } else {
             console.log("No valid fleet data found.");
         }
     }
 
-    // Initialize the script
     function init() {
         scrapeFleetData();
     }
 
     scrapeFleetData();
 
-    // Ensure the window is fully loaded before running the script
+
     window.addEventListener('load', init);
 
 })();
