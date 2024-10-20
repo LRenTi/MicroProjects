@@ -128,7 +128,32 @@
     }
 
     // Create and append the timestamp, airplane icon, and colored circles with aircraft counts
-    function updateTopbar(fleetCount, healthyCount, lowHealthCount) {
+    function updateTopbar() {
+        const fleetData = localStorage.getItem("fleetData");
+        const fleetArray = JSON.parse(fleetData);
+        let repair = 0;
+        let aiFlight = 0;
+        let aiTransfer = 0;
+        let aiReady = 0;
+
+        if (fleetData) {
+            // String zu einem Array parsen
+            fleetArray.forEach(aircraft => {
+                if (aircraft.status === "PARKED" && aircraft.health <= 50 /*&& aircraft.location === aircraft.hub*/) {
+                    repair++;
+                }
+                if(aircraft.status === "AI IN FLIGHT"){
+                    aiFlight++;
+                }
+                if(aircraft.location !== aircraft.hub && aircraft.route){
+                    aiTransfer++;
+                }
+                if(aircraft.health < 50 && aircraft.status === "PARKED" && aircraft.location === aircraft.hub){
+                    aiReady++;
+                }
+            });
+        }
+
         const topbar = document.getElementById('customTopbar');
         if (!topbar) return;
 
@@ -141,9 +166,28 @@
 
         // Add timestamp (left-aligned)
         const timestamp = document.createElement('span');
-        timestamp.style.marginRight = '20px';
+        timestamp.style.marginRight = '10px';
         timestamp.textContent = formatTimestamp();
         topbar.appendChild(timestamp);
+
+        if(repair >= 1){
+            const repairAircraft = document.createElement('div');
+            repairAircraft.style.display = 'flex';
+            repairAircraft.style.alignItems = 'center';
+            repairAircraft.style.justifyContent = 'center';
+            repairAircraft.style.gap = '5px';
+            repairAircraft.style.marginRight = '10px';
+            const repairIcon = document.createElement('i');
+            repairIcon.classList.add('fas', 'fa-screwdriver-wrench');
+            repairIcon.style.fontSize = '20px';
+            repairIcon.style.color = '#FF5733';
+            const repairCount = document.createElement('span');
+            repairCount.textContent = repair;
+            repairCount.style.color = '#FF5733';
+            repairAircraft.appendChild(repairIcon);
+            repairAircraft.appendChild(repairCount);
+            topbar.appendChild(repairAircraft);
+        }
 
         // Create airplane icon and fleet count container
         const airplaneCount = document.createElement('div');
@@ -151,51 +195,82 @@
         airplaneCount.style.alignItems = 'center';
         airplaneCount.style.justifyContent = 'center';
         airplaneCount.style.gap = '5px';
+        airplaneCount.style.marginRight = '10px';
         const airplane = document.createElement('i');
         airplane.classList.add('fas', 'fa-plane');
         airplane.style.fontSize = '20px';
         airplane.style.color = '#fff';
         const fleetCountSpan = document.createElement('span');
-        fleetCountSpan.textContent = fleetCount;
+        fleetCountSpan.textContent = fleetArray.length;
         fleetCountSpan.style.color = '#fff';
         airplaneCount.appendChild(airplane);
         airplaneCount.appendChild(fleetCountSpan);
         topbar.appendChild(airplaneCount);
 
-        // Add green circle for healthy aircraft (Health > 50%)
-        const greenCircle = document.createElement('span');
-        greenCircle.style.display = 'inline-block';
-        greenCircle.style.width = '20px';
-        greenCircle.style.height = '20px';
-        greenCircle.style.backgroundColor = 'green';
-        greenCircle.style.borderRadius = '50%';
-        greenCircle.style.margin = '0 10px';
-        topbar.appendChild(greenCircle);
+        console.log("Ai Flight", aiTransfer)
 
-        const healthyCountSpan = document.createElement('span');
-        healthyCountSpan.textContent = healthyCount;
-        topbar.appendChild(healthyCountSpan);
+        if(aiFlight >= 1){
+            const aiAircraft = document.createElement('div');
+            aiAircraft.style.display = 'flex';
+            aiAircraft.style.alignItems = 'center';
+            aiAircraft.style.justifyContent = 'center';
+            aiAircraft.style.gap = '5px';
+            aiAircraft.style.marginRight = '10px';
+            const aiIcon = document.createElement('i');
+            aiIcon.classList.add('fas', 'fa-microchip');
+            aiIcon.style.fontSize = '20px';
+            aiIcon.style.color = '#fff';
+            const aiCount = document.createElement('span');
+            aiCount.textContent = aiFlight;
+            aiCount.style.color = '#fff';
+            aiAircraft.appendChild(aiIcon);
+            aiAircraft.appendChild(aiCount);
+            topbar.appendChild(aiAircraft);
+        }
 
-        // Add red circle for low health aircraft (Health <= 50%)
-        const redCircle = document.createElement('span');
-        redCircle.style.display = 'inline-block';
-        redCircle.style.width = '20px';
-        redCircle.style.height = '20px';
-        redCircle.style.backgroundColor = 'red';
-        redCircle.style.borderRadius = '50%';
-        redCircle.style.marginLeft = '10px';
-        topbar.appendChild(redCircle);
+        if(aiTransfer >= 1){
+            const aiTransferAircraft = document.createElement('div');
+            aiTransferAircraft.style.display = 'flex';
+            aiTransferAircraft.style.alignItems = 'center';
+            aiTransferAircraft.style.justifyContent = 'center';
+            aiTransferAircraft.style.gap = '5px';
+            aiTransferAircraft.style.marginRight = '10px';
+            const aiTransIcon = document.createElement('i');
+            aiTransIcon.classList.add('fas', 'fa-microchip');
+            aiTransIcon.style.fontSize = '20px';
+            aiTransIcon.style.color = '#FF5733';
+            const aiTransCount = document.createElement('span');
+            aiTransCount.textContent = aiTransfer;
+            aiTransCount.style.color = '#fff';
+            aiTransferAircraft.appendChild(aiTransIcon);
+            aiTransferAircraft.appendChild(aiTransCount);
+            topbar.appendChild(aiTransferAircraft);
+        }
 
-        const lowHealthCountSpan = document.createElement('span');
-        lowHealthCountSpan.textContent = lowHealthCount;
-        topbar.appendChild(lowHealthCountSpan);
+        if(aiReady >= 1){
+            const aiReadyAircraft = document.createElement('div');
+            aiReadyAircraft.style.display = 'flex';
+            aiReadyAircraft.style.alignItems = 'center';
+            aiReadyAircraft.style.justifyContent = 'center';
+            aiReadyAircraft.style.gap = '5px';
+            aiReadyAircraft.style.marginRight = '10px';
+            const aiReadyIcon = document.createElement('i');
+            aiReadyIcon.classList.add('fas', 'fa-plane-departure');
+            aiReadyIcon.style.fontSize = '20px';
+            aiReadyIcon.style.color = '#4CBB17';
+            const aiReadyCount = document.createElement('span');
+            aiReadyCount.textContent = aiReady;
+            aiReadyCount.style.color = '#fff';
+            aiReadyAircraft.appendChild(aiReadyIcon);
+            aiReadyAircraft.appendChild(aiReadyCount);
+            topbar.appendChild(aiReadyAircraft);
+        }
+
     }
 
     // Scrape fleet data
     function scrapeFleetData() {
         const fleetData = [];
-        let healthyCount = 0;
-        let lowHealthCount = 0;
         const aircraftCards = document.querySelectorAll('.employee-card');
 
         aircraftCards.forEach(card => {
@@ -220,13 +295,6 @@
                 const aircraft = aircraftElement.innerText;
                 const type = typeElement.innerText.replace("Type: ", "").trim();
                 const health = parseInt(healthElement.innerText.trim());
-
-                // Increment health-based counters
-                if (health > 50) {
-                    healthyCount++;
-                } else {
-                    lowHealthCount++;
-                }
 
                 let status, location;
                 if (statusElement.innerText.includes("AI IN FLIGHT")) {
@@ -260,7 +328,7 @@
             localStorage.setItem('fleetData', JSON.stringify(fleetData));
             localStorage.setItem('timeStamp', new Date().toISOString());
             console.log("Fleet data saved successfully!", fleetData);
-            updateTopbar(fleetData.length, healthyCount, lowHealthCount); // Update topbar with health counts
+            updateTopbar();
         } else {
             console.log("No valid fleet data found.");
         }
