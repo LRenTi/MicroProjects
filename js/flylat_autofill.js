@@ -13,8 +13,10 @@
 
     var aircraftselection;
 
+    var fd = JSON.parse(localStorage.getItem("AIFleet") || "[]");
+
     const button = document.createElement('button');
-    button.innerText = 'Random';
+    button.innerText = `Random ${fd.length}x`;
     button.className = 'btn btn-cancel';
     button.style.backgroundColor = '#28a745';
     button.style.color = 'white';
@@ -147,7 +149,7 @@
                     }
                 }
             }
-        }, 350);
+        }, 500);
     }
 
     function selectRandomAircraft() {
@@ -212,12 +214,12 @@
 
     function init() {
         getAIFleet();
-        selectRandomAircraft();
+        //fillFormFields(selectRandomAircraft());
     }
 
     getAIFleet();
 
-    if (localStorage.getItem('AIFleet').length === 0) {
+    if (localStorage.getItem('AIFleet').length < 1) {
         console.warn("No available parked aircraft in localStorage.");
         button.style.backgroundColor = '';
         button.disabled = true;
