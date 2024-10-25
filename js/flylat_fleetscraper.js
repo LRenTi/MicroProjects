@@ -30,6 +30,8 @@
     topbar.style.flexDirection = 'row';
 
     const buttonarea = document.createElement('div');
+    buttonarea.style.display = 'flex';
+    buttonarea.style.gap = '5px';
     buttonarea.style.marginBottom = '10px';
 
     const aiButton = document.createElement('button');
@@ -119,7 +121,10 @@
     }
 
     function updateTopbar() {
+        let repairIdList = [];
+        let transferList = [];
         const fleetData = localStorage.getItem("fleetData");
+
         console.log("Loaded Fleet Data:", fleetData);
         const fleetArray = JSON.parse(fleetData);
         let repair = 0;
@@ -134,18 +139,46 @@
             fleetArray.forEach(aircraft => {
                 if (aircraft.status === "PARKED" && aircraft.health <= 50 /*&& aircraft.location === aircraft.hub*/) {
                     repair++;
+                    repairIdList.push(aircraft.id);
                 }
                 if(aircraft.status === "AI IN FLIGHT"){
                     aiFlight++;
                 }
                 if(aircraft.status.includes("PARKED") && aircraft.route && ((aircraft.location !== aircraft.departure) || (aircraft.location !== aircraft.hub))){
                     aiTransfer++;
+                    transferList.push(aircraft.name);
                 }
                 if(aircraft.status.includes("PARKED") && aircraft.health > 50 && aircraft.route && aircraft.departure === aircraft.location){
                     aiReady++;
                 }
 
             });
+        }
+        console.log("IDs to repair:", repairIdList);
+
+        if (repairIdList.length > 0) {
+            const repairAllButton = document.createElement('button');
+            repairAllButton.textContent = 'Repair all';
+            repairAllButton.style.backgroundColor = '#FF5733';
+            repairAllButton.style.color = '#fff';
+            repairAllButton.style.border = '1px solid #FF5733';
+            repairAllButton.style.padding = '5px 10px';
+            repairAllButton.style.borderRadius = '5px';
+
+            repairAllButton.onclick = function() {
+                repairIdList.forEach((id, index) => {
+                    const url = `https://app.flylat.net/fleet_ws/${id}`;
+                    setTimeout(() => {
+                        window.open(url, '_blank');
+                        repairIdList.splice(index, 1);
+                        console.log(`Removed ID: ${id}, Updated list:`, repairIdList);
+                    }, index * 1000);
+                });
+            };
+
+
+            // Button zur buttonarea hinzufügen
+            buttonarea.appendChild(repairAllButton);
         }
 
         const topbar = document.getElementById('customTopbar');
@@ -239,6 +272,35 @@
             aiTransferAircraft.appendChild(aiTransIcon);
             aiTransferAircraft.appendChild(aiTransCount);
             topbar.appendChild(aiTransferAircraft);
+
+            // Liste erstellen und verstecken
+            const transferListElement = document.createElement('ul');
+            transferListElement.style.position = 'absolute';
+            transferListElement.style.display = 'none';
+            transferListElement.style.backgroundColor = '#041C3D';
+            transferListElement.style.border = '1px solid #ccc';
+            transferListElement.style.padding = '10px';
+            transferListElement.style.listStyle = 'none';
+            transferListElement.style.zIndex = '1000'; // Damit die Liste über dem restlichen Inhalt liegt
+
+            // Namen zur Liste hinzufügen
+            transferList.forEach(name => {
+                const listItem = document.createElement('li');
+                listItem.textContent = name;
+                transferListElement.appendChild(listItem);
+            });
+
+            // Event-Listener für Hover hinzufügen
+            aiTransferAircraft.addEventListener('mouseover', () => {
+                transferListElement.style.display = 'block';
+            });
+
+            aiTransferAircraft.addEventListener('mouseout', () => {
+                transferListElement.style.display = 'none';
+            });
+
+            // Die Liste als Kind von aiTransferAircraft hinzufügen
+            aiTransferAircraft.appendChild(transferListElement);
         }
 
         console.log("Ready to TakeOFF", aiReady)
@@ -276,8 +338,13 @@
             const healthElement = card.querySelector('.progress-bar');
 
             const allForms = card.querySelectorAll('form');
+            let id = null;
 
             allForms.forEach(formElement => {
+                const actionUrl = formElement.action; // Get the action URL
+                const urlParts = actionUrl.split('/');
+                id = urlParts[urlParts.length - 1];
+
                 formElement.addEventListener('submit', function(event) {
                     event.preventDefault(); // Prevent the default form submission
                     const actionUrl = formElement.action; // Get the action URL
@@ -309,6 +376,7 @@
                 }
 
                 fleetData.push({
+                    id: id,
                     name: name,
                     aircraft: aircraft,
                     type: type,
