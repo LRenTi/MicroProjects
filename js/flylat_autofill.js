@@ -28,11 +28,24 @@
         selectRandomAircraft();
     };
 
+    const autoButton = document.createElement('button');
+    autoButton.innerText = `auto`;
+    autoButton.className = 'btn btn-warning';
+    autoButton.style.color = 'white';
+    autoButton.style.border = 'none';
+    autoButton.style.padding = '10px 20px';
+    autoButton.style.borderRadius = '5px';
+
+    autoButton.onclick = function() {
+        autoSubmitForm();
+    }
+
     const buttonContainer = document.querySelector('.d-flex.justify-content-between');
     if (buttonContainer) {
         const cancelButton = buttonContainer.querySelector('.btn-cancel');
         const createButton = buttonContainer.querySelector('.btn-create');
         buttonContainer.insertBefore(button, createButton);
+        buttonContainer.insertBefore(autoButton, createButton);
     }
 
     const form = document.querySelector('form');
@@ -85,6 +98,51 @@
         if (firstH6) {
             firstH6.insertAdjacentElement('afterend', flightInfoBox);
         }
+    }
+
+    function autoSubmitForm() {
+        const fleetData = JSON.parse(localStorage.getItem("AIFleet") || "[]");
+
+        if (fleetData.length === 0) {
+            console.warn("Keine verfügbaren Flugdaten im Speicher.");
+            return;
+        }
+
+        // Für jedes Flugzeug eine eigene Anfrage senden
+        fleetData.forEach(aircraft => {
+            const data = {
+                crewName: aircraft.route,
+                departure: aircraft.departure,
+                destination: aircraft.destination,
+                aircraft: aircraft.id
+            };
+
+            const formData = new FormData();
+            formData.append("crewName", data.crewName);
+            formData.append("departure", data.departure);
+            formData.append("destination", data.destination);
+            formData.append("aircraft", data.aircraft);
+
+            // Fetch-Anfrage mit multipart/form-data
+            const randNum = (Math.random() % 100) + 25;
+            setTimeout(randNum);
+            fetch('https://app.flylat.net/employees/create_crew.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                if (response.ok) {
+                    console.log("Formular erfolgreich abgeschickt für:", data);
+                } else {
+                    console.error("Fehler beim Abschicken des Formulars für:", data, response.statusText);
+                }
+            })
+                .catch(error => console.error("Netzwerkfehler für:", data, error));
+
+            removeAircraftFromStorage(aircraft.name);
+        });
+
+
     }
 
     function uploadDataToForm(aircraft) {
