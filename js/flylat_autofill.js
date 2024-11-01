@@ -142,6 +142,8 @@
             removeAircraftFromStorage(aircraft.name);
         });
 
+        showModal();
+
 
     }
 
@@ -268,6 +270,41 @@
             localStorage.removeItem('AIFleet');
             return;
         }
+    }
+
+    function showModal(successCount) {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        modal.style.display = 'flex';
+        modal.style.justifyContent = 'center';
+        modal.style.alignItems = 'center';
+        modal.style.zIndex = '1000';
+        modal.style.color = '#000';
+
+        const modalContent = document.createElement('div');
+        modalContent.style.backgroundColor = '#fff';
+        modalContent.style.padding = '20px';
+        modalContent.style.borderRadius = '5px';
+        modalContent.style.textAlign = 'center';
+        modalContent.style.width = '300px';
+
+        modalContent.innerHTML = `
+            <h4>Submission Complete</h4>
+            <button id="closeModal" class="btn btn-primary">tFleet</button>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        document.getElementById('closeModal').onclick = function() {
+            setTimeout(100);
+            window.location.href = 'https://app.flylat.net/fleet';
+        };
     }
 
     function init() {
