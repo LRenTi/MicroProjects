@@ -166,18 +166,30 @@
             repairAllButton.style.borderRadius = '5px';
 
             repairAllButton.onclick = function() {
-                repairIdList.forEach((id, index) => {
+                const idsToSend = [...repairIdList]; // Erstelle eine Kopie der Liste
+                idsToSend.forEach((id, index) => {
                     const url = `https://app.flylat.net/fleet_ws/${id}`;
                     setTimeout(() => {
-                        window.open(url, '_blank');
-                        repairIdList.splice(index, 1);
-                        console.log(`Removed ID: ${id}, Updated list:`, repairIdList);
-                    }, index * 1000);
+                        fetch(url, {
+                            method: 'POST',
+                        })
+                            .then(response => {
+                            if (response.ok) {
+                                console.log("Formular erfolgreich abgeschickt für:", id);
+                                // Entferne ID nach erfolgreichem Senden
+                                repairIdList.splice(repairIdList.indexOf(id), 1);
+                                console.log(`Removed ID: ${id}, Updated list:`, repairIdList);
+                            } else {
+                                console.error("Fehler beim Abschicken des Formulars für:", id, response.statusText);
+                            }
+                        })
+                            .catch(error => console.error("Netzwerkfehler für:", id, error));
+                    }, index * 25);
                 });
+                location.reload(true);
+
+
             };
-
-
-            // Button zur buttonarea hinzufügen
             buttonarea.appendChild(repairAllButton);
         }
 
@@ -326,78 +338,79 @@
 
     }
 
-function scrapeFleetData() {
-    const fleetData = [];
-    const aircraftCards = document.querySelectorAll('.employee-card');
+    function scrapeFleetData() {
+        const fleetData = [];
+        const aircraftCards = document.querySelectorAll('.employee-card');
 
-    aircraftCards.forEach(card => {
-        const nameElement = card.querySelector('h2');
-        const aircraftElement = card.querySelector('p:nth-of-type(1)');
-        const typeElement = card.querySelector('p:nth-of-type(2)');
-        const statusElement = card.querySelector('p:nth-of-type(4)');
-        const healthElement = card.querySelector('.progress-bar');
+        aircraftCards.forEach(card => {
+            const nameElement = card.querySelector('h2');
+            const aircraftElement = card.querySelector('p:nth-of-type(1)');
+            const typeElement = card.querySelector('p:nth-of-type(2)');
+            const statusElement = card.querySelector('p:nth-of-type(4)');
+            const healthElement = card.querySelector('.progress-bar');
 
-        const workshopButtons = card.querySelectorAll('button[title="Send aircraft to workshop"]'); // Buttons nur innerhalb der aktuellen Karte suchen
-        let id = null;
+            const workshopButtons = card.querySelectorAll('button[title="Transfer Aircraft"]'); // Buttons nur innerhalb der aktuellen Karte suchen
+            let id = null;
 
-        workshopButtons.forEach(button => {
-            const onclickAttr = button.getAttribute('onclick'); // Get the onclick attribute
-            const idMatch = onclickAttr.match(/\((\d+)\)/); // Extract the ID using regex
+            workshopButtons.forEach(button => {
+                const onclickAttr = button.getAttribute('onclick'); // Get the onclick attribute
+                const idMatch = onclickAttr.match(/\/(\d+)'/); // Extract the ID using regex
 
-            if (idMatch) {
-                id = idMatch[1]; // Get the ID (first capturing group)
-                console.log("Extracted ID:", id);
+                if (idMatch) {
+                    id = idMatch[1]; // Get the ID (first capturing group)
+                    console.log("Extracted ID:", id);
+                }
+            });
+
+            if (nameElement && aircraftElement && typeElement && statusElement && healthElement) {
+                const name = nameElement.innerText;
+                const aircraft = aircraftElement.innerText;
+                const type = typeElement.innerText.replace("Type: ", "").trim();
+                const health = parseInt(healthElement.innerText.trim());
+
+                let status, location;
+                if (statusElement.innerText.includes("AI IN FLIGHT")) {
+                    status = "AI IN FLIGHT";
+                    location = null;
+                } else if (statusElement.innerText.includes("Transferring")) {
+                    status = "TRANSFERRING";
+                    location = null;
+                } else if (statusElement.innerText.includes("WORKSHOP")) {
+                    status = "WORKSHOP";
+                    const locationMatch = statusElement.innerText.match(/\(([^)]+)\)/);
+                    location = locationMatch ? locationMatch[1] : null;
+                } else {
+                    status = statusElement.innerText.trim().split(' ')[0];
+                    const locationMatch = statusElement.innerText.match(/\(([^)]+)\)/);
+                    location = locationMatch ? locationMatch[1] : null;
+                }
+
+                fleetData.push({
+                    id: id,
+                    name: name,
+                    aircraft: aircraft,
+                    type: type,
+                    status: status,
+                    location: location,
+                    health: health,
+                    hub: null,
+                    occupied: null,
+                    route: null,
+                    departure: null,
+                    destination: null,
+                });
             }
         });
 
-        if (nameElement && aircraftElement && typeElement && statusElement && healthElement) {
-            const name = nameElement.innerText;
-            const aircraft = aircraftElement.innerText;
-            const type = typeElement.innerText.replace("Type: ", "").trim();
-            const health = parseInt(healthElement.innerText.trim());
-
-            let status, location;
-            if (statusElement.innerText.includes("AI IN FLIGHT")) {
-                status = "AI IN FLIGHT";
-                location = null;
-            } else if (statusElement.innerText.includes("Transferring")) {
-                status = "TRANSFERRING";
-                location = null;
-            } else if (statusElement.innerText.includes("WORKSHOP")) {
-                status = "WORKSHOP";
-                const locationMatch = statusElement.innerText.match(/\(([^)]+)\)/);
-                location = locationMatch ? locationMatch[1] : null;
-            } else {
-                status = statusElement.innerText.trim().split(' ')[0];
-                const locationMatch = statusElement.innerText.match(/\(([^)]+)\)/);
-                location = locationMatch ? locationMatch[1] : null;
-            }
-
-            fleetData.push({
-                id: id,
-                name: name,
-                aircraft: aircraft,
-                type: type,
-                status: status,
-                location: location,
-                health: health,
-                hub: null,
-                occupied: null,
-                route: null,
-                departure: null,
-                destination: null,
-            });
+        if (fleetData.length > 0) {
+            localStorage.setItem('fleetData', JSON.stringify(fleetData));
+            localStorage.setItem('timeStamp', new Date().toISOString());
+            console.log("Fleet data saved successfully!", fleetData);
+        } else {
+            console.log("No valid fleet data found.");
         }
-    });
-
-    if (fleetData.length > 0) {
-        localStorage.setItem('fleetData', JSON.stringify(fleetData));
-        localStorage.setItem('timeStamp', new Date().toISOString());
-        console.log("Fleet data saved successfully!", fleetData);
-    } else {
-        console.log("No valid fleet data found.");
     }
-}
+
     function init() {
         scrapeFleetData();
     }
