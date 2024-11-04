@@ -166,7 +166,9 @@
             repairAllButton.style.borderRadius = '5px';
 
             repairAllButton.onclick = function() {
-                const idsToSend = [...repairIdList]; // Erstelle eine Kopie der Liste
+                const idsToSend = [...repairIdList];
+                let requestsCompleted = 0;
+
                 idsToSend.forEach((id, index) => {
                     const url = `https://app.flylat.net/fleet_ws/${id}`;
                     setTimeout(() => {
@@ -174,21 +176,30 @@
                             method: 'POST',
                         })
                             .then(response => {
+                            requestsCompleted++;
                             if (response.ok) {
                                 console.log("Formular erfolgreich abgeschickt für:", id);
-                                // Entferne ID nach erfolgreichem Senden
                                 repairIdList.splice(repairIdList.indexOf(id), 1);
-                                console.log(`Removed ID: ${id}, Updated list:`, repairIdList);
                             } else {
                                 console.error("Fehler beim Abschicken des Formulars für:", id, response.statusText);
                             }
+
+                            // Seite neu laden, wenn alle Requests abgeschlossen sind
+                            if (requestsCompleted === idsToSend.length) {
+                                location.reload();
+                            }
                         })
-                            .catch(error => console.error("Netzwerkfehler für:", id, error));
+                            .catch(error => {
+                            requestsCompleted++;
+                            console.error("Netzwerkfehler für:", id, error);
+
+                            // Seite neu laden, wenn alle Requests abgeschlossen sind
+                            if (requestsCompleted === idsToSend.length) {
+                                location.reload();
+                            }
+                        });
                     }, index * 25);
                 });
-                location.reload(true);
-
-
             };
             buttonarea.appendChild(repairAllButton);
         }
@@ -409,6 +420,10 @@
         } else {
             console.log("No valid fleet data found.");
         }
+    }
+
+    function autoHire(){
+
     }
 
     function init() {
