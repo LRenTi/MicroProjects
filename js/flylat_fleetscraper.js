@@ -123,6 +123,7 @@
     function updateTopbar() {
         let repairIdList = [];
         let transferList = [];
+        let allTransferList = [];
         const fleetData = localStorage.getItem("fleetData");
 
         console.log("Loaded Fleet Data:", fleetData);
@@ -130,6 +131,7 @@
         let repair = 0;
         let aiFlight = 0;
         let aiTransfer = 0;
+        let allTransfer = 0;
         let aiReady = 0;
 
         console.log("Fleet:", fleetArray);
@@ -147,6 +149,10 @@
                 if(aircraft.status.includes("PARKED") && aircraft.route && ((aircraft.location !== aircraft.departure) || (aircraft.location !== aircraft.hub))){
                     aiTransfer++;
                     transferList.push(aircraft.name);
+                }
+                if(aircraft.status.includes("PARKED") && !aircraft.route && (aircraft.location !== aircraft.hub)){
+                    allTransfer++;
+                    allTransferList.push(aircraft.name + " - " + aircraft.hub);
                 }
                 if(aircraft.status.includes("PARKED") && aircraft.health > 50 && aircraft.route && aircraft.departure === aircraft.location){
                     aiReady++;
@@ -307,7 +313,7 @@
             transferListElement.style.zIndex = '1000'; // Damit die Liste über dem restlichen Inhalt liegt
 
             // Namen zur Liste hinzufügen
-            transferList.forEach(name => {
+            allTransferList.forEach(name => {
                 const listItem = document.createElement('li');
                 listItem.textContent = name;
                 transferListElement.appendChild(listItem);
@@ -324,6 +330,56 @@
 
             // Die Liste als Kind von aiTransferAircraft hinzufügen
             aiTransferAircraft.appendChild(transferListElement);
+        }
+
+        if(allTransfer >= 1){
+            const allTransferAircraft = document.createElement('div');
+            allTransferAircraft.style.display = 'flex';
+            allTransferAircraft.style.alignItems = 'center';
+            allTransferAircraft.style.justifyContent = 'center';
+            allTransferAircraft.style.gap = '5px';
+            allTransferAircraft.style.marginRight = '10px';
+            const allTransIcon = document.createElement('i');
+            allTransIcon.classList.add('fas', 'fa-right-left');
+            allTransIcon.style.fontSize = '20px';
+            allTransIcon.style.color = '#fff';
+            const allTransCount = document.createElement('span');
+            allTransCount.textContent = allTransfer;
+            allTransCount.style.color = '#fff';
+            allTransferAircraft.appendChild(allTransIcon);
+            allTransferAircraft.appendChild(allTransCount);
+            topbar.appendChild(allTransferAircraft);
+
+            // Liste erstellen und verstecken
+            const allTransferListElement = document.createElement('ul');
+            allTransferListElement.style.position = 'absolute';
+            allTransferListElement.style.display = 'none';
+            allTransferListElement.style.backgroundColor = '#041C3D';
+            allTransferListElement.style.border = '1px solid #ccc';
+            allTransferListElement.style.padding = '10px';
+            allTransferListElement.style.listStyle = 'none';
+            allTransferListElement.style.zIndex = '1000'; // Damit die Liste über dem restlichen Inhalt liegt
+
+            // Namen zur Liste hinzufügen
+            allTransferList.forEach(transfer => {
+                const listItem = document.createElement('li');
+                listItem.textContent = transfer;
+                allTransferListElement.appendChild(listItem);
+            });
+
+            console.log("List: ", transferList);
+            console.log(allTransferListElement);
+
+            // Event-Listener für Hover hinzufügen
+            allTransferAircraft.addEventListener('mouseover', () => {
+                allTransferListElement.style.display = 'block';
+            });
+
+            allTransferAircraft.addEventListener('mouseout', () => {
+                allTransferListElement.style.display = 'none';
+            });
+
+            allTransferAircraft.appendChild(allTransferListElement);
         }
 
         console.log("Ready to TakeOFF", aiReady)
@@ -345,6 +401,20 @@
             aiReadyAircraft.appendChild(aiReadyIcon);
             aiReadyAircraft.appendChild(aiReadyCount);
             topbar.appendChild(aiReadyAircraft);
+
+            const autoHireButton = document.createElement('button');
+            autoHireButton.textContent = 'Auto Hire';
+            autoHireButton.style.backgroundColor = '#4CBB17';
+            autoHireButton.style.color = '#fff';
+            autoHireButton.style.border = '1px solid #4CBB17';
+            autoHireButton.style.padding = '5px 10px';
+            autoHireButton.style.borderRadius = '5px';
+
+            autoHireButton.onclick = function() {
+                autoHire();
+            }
+
+            buttonarea.appendChild(autoHireButton);
         }
 
     }
@@ -422,9 +492,91 @@
         }
     }
 
-    function autoHire(){
+    function autoHire() {
+        const fleetData = JSON.parse(localStorage.getItem('fleetData') || '[]');
+        if (fleetData.length === 0) {
+            console.log("No fleetData in localStorage.");
+            return;
+        }
 
+        const availableAircraft = fleetData.filter(aircraft =>
+                                                   aircraft.occupied == "AI" &&
+                                                   aircraft.status == "PARKED" &&
+                                                   aircraft.hub == aircraft.location
+                                                  );
+
+        console.log("Available Aircraft:", availableAircraft);
+
+        localStorage.removeItem('AIFleet');
+        localStorage.setItem('AIFleet', JSON.stringify(availableAircraft));
+        localStorage.removeItem('timeStamp');
+        localStorage.removeItem('fleetData');
+
+        if (availableAircraft.length === 0) {
+            localStorage.removeItem('AIFleet');
+            return;
+        }
+
+        const fleetDataForSubmit = JSON.parse(localStorage.getItem("AIFleet") || "[]");
+
+        if (fleetDataForSubmit.length === 0) {
+            console.warn("Keine verfügbaren Flugdaten im Speicher.");
+            return;
+        }
+
+        // Versprechen für jede Anfrage sammeln
+        const submitPromises = fleetDataForSubmit.map(aircraft => {
+            const data = {
+                crewName: aircraft.route,
+                departure: aircraft.departure,
+                destination: aircraft.destination,
+                aircraft: aircraft.id
+            };
+
+            const formData = new FormData();
+            formData.append("crewName", data.crewName);
+            formData.append("departure", data.departure);
+            formData.append("destination", data.destination);
+            formData.append("aircraft", data.aircraft);
+
+            // Fetch-Anfrage erstellen
+            return fetch('https://app.flylat.net/employees/create_crew.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Fehler für ${data.aircraft}: ${response.statusText}`);
+                }
+                console.log("Formular erfolgreich abgeschickt für:", data);
+                removeAircraftFromStorage(aircraft.name);
+            })
+                .catch(error => {
+                console.error("Netzwerkfehler für:", data, error);
+                throw error; // Fehler weitergeben
+            });
+        });
+
+        // Alle Promises abwarten
+        Promise.all(submitPromises)
+            .then(() => {
+            console.log("Alle Formulare erfolgreich abgeschickt.");
+            window.location.reload(); // Seite neu laden
+        })
+            .catch(error => {
+            console.error("Mindestens ein Formular konnte nicht abgeschickt werden.", error);
+            alert("Es gab einen Fehler beim Abschicken einiger Formulare. Bitte prüfen Sie die Konsole für Details.");
+        });
     }
+    function removeAircraftFromStorage(selectedAircraftName) {
+        const fleetData = JSON.parse(localStorage.getItem('AIFleet') || '[]');
+        if (fleetData.length === 0) return;
+
+        const updatedFleetData = fleetData.filter(aircraft => aircraft.name !== selectedAircraftName);
+        localStorage.setItem('AIFleet', JSON.stringify(updatedFleetData));
+        console.log("Updated AIFleet after removal:", updatedFleetData);
+    }
+
 
     function init() {
         scrapeFleetData();
