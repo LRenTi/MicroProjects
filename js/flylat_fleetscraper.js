@@ -150,7 +150,7 @@
                     aiTransfer++;
                     transferList.push(aircraft.name);
                 }
-                if(aircraft.status.includes("PARKED") && !aircraft.route && (aircraft.location !== aircraft.hub)){
+                if(aircraft.status.includes("PARKED") && !aircraft.route && (aircraft.location !== aircraft.hub) && (aircraft.type !== "Cargo")){
                     allTransfer++;
                     allTransferList.push(aircraft.name + " - " + aircraft.hub);
                 }
@@ -576,7 +576,6 @@
         localStorage.setItem('AIFleet', JSON.stringify(updatedFleetData));
         console.log("Updated AIFleet after removal:", updatedFleetData);
     }
-
 
     function init() {
         scrapeFleetData();
