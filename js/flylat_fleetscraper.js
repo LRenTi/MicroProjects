@@ -124,6 +124,7 @@
         let repairIdList = [];
         let transferList = [];
         let allTransferList = [];
+        let aiReadyList = [];
         const fleetData = localStorage.getItem("fleetData");
 
         console.log("Loaded Fleet Data:", fleetData);
@@ -156,6 +157,7 @@
                 }
                 if(aircraft.status.includes("PARKED") && aircraft.health > 50 && aircraft.route && aircraft.departure === aircraft.location){
                     aiReady++;
+                    aiReadyList.push(aircraft.name + " - " + aircraft.destination);
                 }
 
             });
@@ -358,19 +360,14 @@
             allTransferListElement.style.border = '1px solid #ccc';
             allTransferListElement.style.padding = '10px';
             allTransferListElement.style.listStyle = 'none';
-            allTransferListElement.style.zIndex = '1000'; // Damit die Liste über dem restlichen Inhalt liegt
+            allTransferListElement.style.zIndex = '1000';
 
-            // Namen zur Liste hinzufügen
             allTransferList.forEach(transfer => {
                 const listItem = document.createElement('li');
                 listItem.textContent = transfer;
                 allTransferListElement.appendChild(listItem);
             });
 
-            console.log("List: ", transferList);
-            console.log(allTransferListElement);
-
-            // Event-Listener für Hover hinzufügen
             allTransferAircraft.addEventListener('mouseover', () => {
                 allTransferListElement.style.display = 'block';
             });
@@ -401,6 +398,31 @@
             aiReadyAircraft.appendChild(aiReadyIcon);
             aiReadyAircraft.appendChild(aiReadyCount);
             topbar.appendChild(aiReadyAircraft);
+
+            const aiReadyListElement = document.createElement('ul');
+            aiReadyListElement.style.position = 'absolute';
+            aiReadyListElement.style.display = 'none';
+            aiReadyListElement.style.backgroundColor = '#041C3D';
+            aiReadyListElement.style.border = '1px solid #ccc';
+            aiReadyListElement.style.padding = '10px';
+            aiReadyListElement.style.listStyle = 'none';
+            aiReadyListElement.style.zIndex = '1000';
+
+            aiReadyList.forEach(name => {
+                const listItem = document.createElement('li');
+                listItem.textContent = name;
+                aiReadyListElement.appendChild(listItem);
+            });
+
+            aiReadyAircraft.addEventListener('mouseover', () => {
+                aiReadyListElement.style.display = 'block';
+            });
+
+            aiReadyAircraft.addEventListener('mouseout', () => {
+                aiReadyListElement.style.display = 'none';
+            });
+
+            aiReadyAircraft.appendChild(aiReadyListElement);
 
             const autoHireButton = document.createElement('button');
             autoHireButton.textContent = 'Auto Hire';
